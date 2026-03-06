@@ -3,6 +3,8 @@ import pandas as pd
 
 
 EXPECTED_FILES = [
+    "accident2020.csv",
+    "accident2021.csv",
     "accident2022.csv",
     "accident2023.csv",
     "accident2024.csv",
