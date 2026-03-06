@@ -78,6 +78,15 @@ def clean_accident_data(df: pd.DataFrame) -> pd.DataFrame:
         if c in df.columns:
             df[c] = df[c].astype(str).fillna("Unknown").replace("nan", "Unknown")
 
+    # 🔴 ลบทุกแถวที่มี Unknown
+    unknown_values = ["Unknown"]
+
+    df = df[
+        ~df.astype(str)
+        .apply(lambda row: row.str.contains("|".join(unknown_values), na=False))
+        .any(axis=1)
+    ]
+
     # กันปัญหา mixed type ในคอลัมน์ object ตอนเขียน parquet (เช่น str/int/bytes ปนกัน)
     object_cols = df.select_dtypes(include=["object"]).columns
     for c in object_cols:
