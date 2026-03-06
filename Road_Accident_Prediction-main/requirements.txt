@@ -1,0 +1,12 @@
+pandas
+numpy
+pycaret
+scikit-learn
+dash
+plotly
+dash-bootstrap-components
+pyarrow
+pytest
+black
+isort
+flake8
