@@ -126,7 +126,20 @@ else:
     )
 
     content.append(
-        dbc.Row([dbc.Col(dcc.Graph(figure=fig_level), md=12)], className="mb-3")
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody(
+                            dcc.Graph(figure=fig_level, className="chart-graph")
+                        ),
+                        className="section-card",
+                    ),
+                    md=12,
+                )
+            ],
+            className="mb-3",
+        )
     )
 
 layout = dbc.Container(
@@ -135,9 +148,11 @@ layout = dbc.Container(
         html.P(
             "Risk Score (0-100) คำนวณจากการผสาน 3 ปัจจัยหลัก ได้แก่ ความรุนแรงของเหตุการณ์ "
             "(จำนวนผู้บาดเจ็บ + น้ำหนักผู้เสียชีวิต), ความถี่การเกิดซ้ำในพื้นที่ใกล้เคียง (area frequency), "
-            "และการเกิดเหตุในช่วงเวลาเร่งด่วน (is_peak_hour)"
+            "และการเกิดเหตุในช่วงเวลาเร่งด่วน (is_peak_hour)",
+            className="section-subtitle",
         ),
         *content,
     ],
     fluid=True,
+    className="page-wrap pb-4",
 )
