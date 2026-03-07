@@ -6,7 +6,11 @@ from src.app.pages.overview import layout as overview_layout
 from src.app.pages.forecast import layout as forecast_layout
 from src.app.pages.risk_map import layout as risk_map_layout
 
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    suppress_callback_exceptions=True,
+)
 
 app.layout = dbc.Container(
     [
@@ -25,6 +29,7 @@ app.layout = dbc.Container(
     fluid=True,
 )
 
+
 @app.callback(Output("tab-content", "children"), Input("tabs", "value"))
 def render_tab(tab):
     if tab == "overview":
@@ -32,6 +37,7 @@ def render_tab(tab):
     if tab == "forecast":
         return forecast_layout
     return risk_map_layout
+
 
 if __name__ == "__main__":
     app.run(debug=True)

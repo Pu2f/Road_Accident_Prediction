@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
-from dash import html, dcc, Input, Output, callback
+from dash import html, dcc, Input, Output, State, callback
 import dash_bootstrap_components as dbc
 from src.model.predict import predict_injury
 
@@ -155,12 +155,12 @@ layout = dbc.Container(
 @callback(
     Output("forecast-result", "children"),
     Input("btn-predict", "n_clicks"),
-    Input("province", "value"),
-    Input("weather", "value"),
-    Input("hour", "value"),
-    Input("dow", "value"),
-    Input("month", "value"),
-    Input("peak", "value"),
+    State("province", "value"),
+    State("weather", "value"),
+    State("hour", "value"),
+    State("dow", "value"),
+    State("month", "value"),
+    State("peak", "value"),
     prevent_initial_call=True,
 )
 def do_predict(n_clicks, province, weather, hour, dow, month, peak):

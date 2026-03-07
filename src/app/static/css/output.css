@@ -1,0 +1,9 @@
+/* Build output from input.css (Tailwind or other CSS framework pipeline) */
+
+body {
+  background: #f7f9fc;
+}
+
+.dash-tab-content {
+  padding-top: 1rem;
+}
