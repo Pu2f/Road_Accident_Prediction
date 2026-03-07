@@ -22,7 +22,7 @@ app.layout = dbc.Container(
             [
                 html.H2("Road Accident Forecast Dashboard", className="app-title"),
                 html.P(
-                    "Accident analytics, forecasting, and risk insights",
+                    "ข้อมูลอุบัติเหตุบนโครงข่ายถนนของกระทรวงคมนาคม ประกอบด้วย อุบัติเหตุที่เกิดขึ้นบนถนนทางหลวง ทางหลวงชนบท และทางด่วน",
                     className="app-subtitle",
                 ),
             ],
