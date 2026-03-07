@@ -125,30 +125,8 @@ else:
         margin=dict(l=0, r=0, t=50, b=0), legend_title_text="Risk Level"
     )
 
-    # 2) Top risk provinces
-    top_prov = (
-        df.groupby("จังหวัด", dropna=False)["risk_score"]
-        .mean()
-        .sort_values(ascending=False)
-        .head(10)
-        .reset_index()
-    )
-    fig_top = px.bar(
-        top_prov,
-        x="จังหวัด",
-        y="risk_score",
-        color="จังหวัด",
-        title="Top 10 จังหวัดเสี่ยงสูง (ค่าเฉลี่ย Risk Score)",
-        labels={"risk_score": "Average Risk Score"},
-        color_discrete_sequence=px.colors.qualitative.Set3,
-    )
-    fig_top.update_layout(margin=dict(l=0, r=0, t=50, b=0), showlegend=False)
-
-    content.extend(
-        [
-            dbc.Row([dbc.Col(dcc.Graph(figure=fig_level), md=12)], className="mb-3"),
-            dbc.Row([dbc.Col(dcc.Graph(figure=fig_top), md=12)], className="mb-3"),
-        ]
+    content.append(
+        dbc.Row([dbc.Col(dcc.Graph(figure=fig_level), md=12)], className="mb-3")
     )
 
 layout = dbc.Container(
