@@ -75,87 +75,200 @@ DEFAULT_WEATHER = (
 
 layout = dbc.Container(
     [
-        html.H3("Forecast จำนวนผู้บาดเจ็บ"),
-        html.P("กรอกพารามิเตอร์รอบข้างเพื่อคาดการณ์"),
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        dbc.Label("จังหวัด"),
-                        dcc.Dropdown(
-                            id="province",
-                            options=PROVINCE_OPTIONS,
-                            value=DEFAULT_PROVINCE,
-                            clearable=False,
-                            searchable=True,
-                        ),
-                    ],
-                    md=4,
-                ),
-                dbc.Col(
-                    [
-                        dbc.Label("สภาพอากาศ"),
-                        dcc.Dropdown(
-                            id="weather",
-                            options=WEATHER_OPTIONS,
-                            value=DEFAULT_WEATHER,
-                            clearable=False,
-                            searchable=True,
-                        ),
-                    ],
-                    md=4,
-                ),
-                dbc.Col(
-                    [
-                        dbc.Label("ชั่วโมง (0-23)"),
-                        dcc.Dropdown(
-                            id="hour", options=HOUR_OPTIONS, value=18, clearable=False
-                        ),
-                    ],
-                    md=4,
-                ),
-            ],
-            className="mb-3",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        dbc.Label("วันในสัปดาห์ (0=จันทร์)"),
-                        dcc.Dropdown(
-                            id="dow", options=DOW_OPTIONS, value=4, clearable=False
-                        ),
-                    ],
-                    md=4,
-                ),
-                dbc.Col(
-                    [
-                        dbc.Label("เดือน (1-12)"),
-                        dcc.Dropdown(
-                            id="month", options=MONTH_OPTIONS, value=3, clearable=False
-                        ),
-                    ],
-                    md=4,
-                ),
-                dbc.Col(
-                    [
-                        dbc.Label("ช่วงเร่งด่วน (0/1)"),
-                        dcc.Dropdown(
-                            id="peak", options=PEAK_OPTIONS, value=1, clearable=False
-                        ),
-                    ],
-                    md=4,
-                ),
-            ],
-            className="mb-3",
-        ),
-        dbc.Button("ทำนาย", id="btn-predict", color="primary"),
-        html.Hr(),
         html.Div(
-            id="forecast-result", style={"fontSize": "22px", "fontWeight": "bold"}
+            [
+                html.Div(
+                    [
+                        html.H3("Forecast จำนวนผู้บาดเจ็บ", className="forecast-title"),
+                        html.P(
+                            "กรอกข้อมูลสถานการณ์เพื่อประเมินจำนวนผู้บาดเจ็บรวมจากโมเดล",
+                            className="forecast-subtitle",
+                        ),
+                    ]
+                ),
+                html.Div(
+                    [
+                        html.Span("Data-driven", className="forecast-badge"),
+                        html.Span("Fast estimate", className="forecast-badge"),
+                    ],
+                    className="forecast-badge-wrap",
+                ),
+            ],
+            className="forecast-hero mb-4",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody(
+                            [
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
+                                            [
+                                                dbc.Label("จังหวัด", className="forecast-label"),
+                                                dcc.Dropdown(
+                                                    id="province",
+                                                    options=PROVINCE_OPTIONS,
+                                                    value=DEFAULT_PROVINCE,
+                                                    clearable=False,
+                                                    searchable=True,
+                                                    className="forecast-input",
+                                                ),
+                                            ],
+                                            md=6,
+                                        ),
+                                        dbc.Col(
+                                            [
+                                                dbc.Label(
+                                                    "สภาพอากาศ", className="forecast-label"
+                                                ),
+                                                dcc.Dropdown(
+                                                    id="weather",
+                                                    options=WEATHER_OPTIONS,
+                                                    value=DEFAULT_WEATHER,
+                                                    clearable=False,
+                                                    searchable=True,
+                                                    className="forecast-input",
+                                                ),
+                                            ],
+                                            md=6,
+                                        ),
+                                    ],
+                                    className="g-3 mb-2",
+                                ),
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
+                                            [
+                                                dbc.Label(
+                                                    "ชั่วโมง (0-23)",
+                                                    className="forecast-label",
+                                                ),
+                                                dcc.Dropdown(
+                                                    id="hour",
+                                                    options=HOUR_OPTIONS,
+                                                    value=18,
+                                                    clearable=False,
+                                                    className="forecast-input",
+                                                ),
+                                            ],
+                                            md=4,
+                                        ),
+                                        dbc.Col(
+                                            [
+                                                dbc.Label(
+                                                    "วันในสัปดาห์",
+                                                    className="forecast-label",
+                                                ),
+                                                dcc.Dropdown(
+                                                    id="dow",
+                                                    options=DOW_OPTIONS,
+                                                    value=4,
+                                                    clearable=False,
+                                                    className="forecast-input",
+                                                ),
+                                            ],
+                                            md=4,
+                                        ),
+                                        dbc.Col(
+                                            [
+                                                dbc.Label(
+                                                    "เดือน (1-12)",
+                                                    className="forecast-label",
+                                                ),
+                                                dcc.Dropdown(
+                                                    id="month",
+                                                    options=MONTH_OPTIONS,
+                                                    value=3,
+                                                    clearable=False,
+                                                    className="forecast-input",
+                                                ),
+                                            ],
+                                            md=4,
+                                        ),
+                                    ],
+                                    className="g-3 mb-2",
+                                ),
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
+                                            [
+                                                dbc.Label(
+                                                    "ช่วงเร่งด่วน", className="forecast-label"
+                                                ),
+                                                dcc.Dropdown(
+                                                    id="peak",
+                                                    options=PEAK_OPTIONS,
+                                                    value=1,
+                                                    clearable=False,
+                                                    className="forecast-input",
+                                                ),
+                                            ],
+                                            md=4,
+                                        ),
+                                        dbc.Col(
+                                            dbc.Button(
+                                                "ทำนายผล",
+                                                id="btn-predict",
+                                                color="primary",
+                                                className="forecast-btn w-100",
+                                            ),
+                                            md=8,
+                                            className="d-flex align-items-end",
+                                        ),
+                                    ],
+                                    className="g-3",
+                                ),
+                            ]
+                        ),
+                        className="forecast-panel",
+                    ),
+                    lg=8,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody(
+                            [
+                                html.H5("คำแนะนำ", className="forecast-side-title"),
+                                html.P(
+                                    "เลือกค่าที่ใกล้เคียงสถานการณ์จริงมากที่สุดเพื่อให้ผลประมาณการแม่นยำขึ้น",
+                                    className="forecast-side-text",
+                                ),
+                                html.Ul(
+                                    [
+                                        html.Li("เลือกจังหวัดและสภาพอากาศให้ตรงบริบท"),
+                                        html.Li("ช่วงเวลาเร่งด่วนมักส่งผลต่อความเสี่ยง"),
+                                        html.Li("ใช้ผลนี้เป็นข้อมูลช่วยตัดสินใจเบื้องต้น"),
+                                    ],
+                                    className="forecast-side-list",
+                                ),
+                            ]
+                        ),
+                        className="forecast-sidecard h-100",
+                    ),
+                    lg=4,
+                    className="mt-3 mt-lg-0",
+                ),
+            ],
+            className="g-3",
+        ),
+        dbc.Card(
+            dbc.CardBody(
+                [
+                    html.Div("ผลการคาดการณ์", className="forecast-result-label"),
+                    html.Div(
+                        "กดปุ่ม 'ทำนายผล' เพื่อเริ่มคำนวณ",
+                        id="forecast-result",
+                        className="forecast-result-value",
+                    ),
+                ]
+            ),
+            className="forecast-result-card mt-4",
         ),
     ],
     fluid=True,
+    className="forecast-page pb-4",
 )
 
 
