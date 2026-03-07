@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import plotly.express as px
-from dash import html, dcc
+from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 
 DATA_PATH = "data/processed/cleaned_accidents.csv"
@@ -274,6 +274,70 @@ def _chart_card(fig):
     )
 
 
+def _make_province_summary(df: pd.DataFrame, top_n: int | None = 10) -> pd.DataFrame:
+    """Build a summary table of accident counts by province.
+
+    Includes:
+    - จำนวนเหตุ (count)
+    - ส่วนแบ่ง (%) ที่เกิดขึ้นในแต่ละจังหวัด
+    - จุดที่เกิดอุบัติเหตุบ่อยที่สุด (ถ้ามีคอลัมน์ข้อมูล)
+
+    If ``top_n`` is None, returns all provinces.
+    """
+
+    if df.empty or "จังหวัด" not in df.columns:
+        return pd.DataFrame()
+
+    total = len(df)
+    prov_series = df["จังหวัด"].fillna("ไม่ระบุ").astype(str)
+    counts = prov_series.value_counts().reset_index()
+    counts.columns = ["จังหวัด", "จำนวนเหตุ"]
+    counts.insert(0, "ลำดับ", range(1, len(counts) + 1))
+    counts["ส่วนแบ่ง (%)"] = (counts["จำนวนเหตุ"] / total * 100).map("{:.1f}%".format)
+
+    if top_n is not None:
+        counts = counts.head(top_n)
+
+    if "บริเวณที่เกิดเหตุ" in df.columns:
+        loc_series = df["บริเวณที่เกิดเหตุ"].fillna("ไม่ระบุ").astype(str)
+        top_locations = []
+        for prov in counts["จังหวัด"]:
+            mask = prov_series == prov
+            loc_counts = loc_series[mask].value_counts()
+            top_locations.append(loc_counts.idxmax() if len(loc_counts) else "ไม่ระบุ")
+        counts["จุดที่เกิดบ่อยที่สุด"] = top_locations
+
+    return counts
+
+
+def _data_table(df: pd.DataFrame, max_rows: int | None = 10, max_cols: int = 10):
+    """Show a small sample of the dataframe as a scrollable Dash data table."""
+
+    if df.empty:
+        return html.Div("ไม่พบข้อมูลสำหรับแสดงในตาราง", className="text-muted")
+
+    cols = df.columns.tolist()[:max_cols]
+    sample = df[cols] if max_rows is None else df[cols].head(max_rows)
+
+    return dash_table.DataTable(
+        columns=[{"name": c, "id": c} for c in sample.columns],
+        data=sample.to_dict("records"),
+        page_action="none",
+        style_table={"maxHeight": "520px", "overflowY": "auto", "overflowX": "auto"},
+        fixed_rows={"headers": True},
+        style_cell={
+            "textAlign": "left",
+            "padding": "6px",
+            "whiteSpace": "normal",
+            "minWidth": "120px",
+        },
+        style_cell_conditional=[
+            {"if": {"column_id": "ลำดับ"}, "width": "60px", "maxWidth": "60px"},
+        ],
+        style_header={"fontWeight": "bold"},
+    )
+
+
 # -- Build grid rows ---------------------------------------------------------
 chart_rows = []
 
@@ -323,6 +387,24 @@ layout = dbc.Container(
         ),
         # -- Charts grid --
         *chart_rows,
+        # -- Data table summary --
+        html.Div(
+            [
+                html.H5("📋 สรุปอุบัติเหตุตามจังหวัด", className="ov-section-title"),
+                html.Hr(className="ov-divider"),
+                dbc.Card(
+                    dbc.CardBody(
+                        _data_table(
+                            _make_province_summary(df, top_n=None),
+                            max_rows=None,
+                            max_cols=5,
+                        )
+                    ),
+                    className="section-card",
+                ),
+            ],
+            className="mt-3 mb-4",
+        ),
     ],
     fluid=True,
     className="page-wrap pb-4",
