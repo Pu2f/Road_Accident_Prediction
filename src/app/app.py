@@ -1,3 +1,4 @@
+from src.app.pages.risk_map import layout as risk_map_layout
 from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 
