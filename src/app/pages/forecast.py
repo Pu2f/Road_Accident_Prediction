@@ -12,7 +12,11 @@ PROCESSED_DATA_PATH = Path("data/processed/cleaned_accidents.csv")
 def _text_options(column_name: str, fallback_values: list[str]) -> list[dict]:
     if PROCESSED_DATA_PATH.exists():
         try:
-            df = pd.read_csv(PROCESSED_DATA_PATH, usecols=[column_name], dtype={column_name: "string"})
+            df = pd.read_csv(
+                PROCESSED_DATA_PATH,
+                usecols=[column_name],
+                dtype={column_name: "string"},
+            )
             values = (
                 df[column_name]
                 .dropna()
@@ -21,7 +25,10 @@ def _text_options(column_name: str, fallback_values: list[str]) -> list[dict]:
                 .replace("", pd.NA)
                 .dropna()
             )
-            unique_values = sorted(v for v in values.unique().tolist() if v != "Unknown")
+            unique_values = sorted(
+                (v for v in values.unique().tolist() if v != "Unknown"),
+                key=lambda value: (value == "อื่นๆ", value),
+            )
             if unique_values:
                 return [{"label": v, "value": v} for v in unique_values]
         except Exception:
@@ -48,8 +55,16 @@ PEAK_OPTIONS = [
     {"label": "ช่วงเร่งด่วน (1)", "value": 1},
 ]
 
-DEFAULT_PROVINCE = "กรุงเทพมหานคร" if any(o["value"] == "กรุงเทพมหานคร" for o in PROVINCE_OPTIONS) else PROVINCE_OPTIONS[0]["value"]
-DEFAULT_WEATHER = "แจ่มใส" if any(o["value"] == "แจ่มใส" for o in WEATHER_OPTIONS) else WEATHER_OPTIONS[0]["value"]
+DEFAULT_PROVINCE = (
+    "กรุงเทพมหานคร"
+    if any(o["value"] == "กรุงเทพมหานคร" for o in PROVINCE_OPTIONS)
+    else PROVINCE_OPTIONS[0]["value"]
+)
+DEFAULT_WEATHER = (
+    "แจ่มใส"
+    if any(o["value"] == "แจ่มใส" for o in WEATHER_OPTIONS)
+    else WEATHER_OPTIONS[0]["value"]
+)
 
 layout = dbc.Container(
     [
@@ -86,7 +101,9 @@ layout = dbc.Container(
                 dbc.Col(
                     [
                         dbc.Label("ชั่วโมง (0-23)"),
-                        dcc.Dropdown(id="hour", options=HOUR_OPTIONS, value=18, clearable=False),
+                        dcc.Dropdown(
+                            id="hour", options=HOUR_OPTIONS, value=18, clearable=False
+                        ),
                     ],
                     md=4,
                 ),
@@ -98,21 +115,27 @@ layout = dbc.Container(
                 dbc.Col(
                     [
                         dbc.Label("วันในสัปดาห์ (0=จันทร์)"),
-                        dcc.Dropdown(id="dow", options=DOW_OPTIONS, value=4, clearable=False),
+                        dcc.Dropdown(
+                            id="dow", options=DOW_OPTIONS, value=4, clearable=False
+                        ),
                     ],
                     md=4,
                 ),
                 dbc.Col(
                     [
                         dbc.Label("เดือน (1-12)"),
-                        dcc.Dropdown(id="month", options=MONTH_OPTIONS, value=3, clearable=False),
+                        dcc.Dropdown(
+                            id="month", options=MONTH_OPTIONS, value=3, clearable=False
+                        ),
                     ],
                     md=4,
                 ),
                 dbc.Col(
                     [
                         dbc.Label("ช่วงเร่งด่วน (0/1)"),
-                        dcc.Dropdown(id="peak", options=PEAK_OPTIONS, value=1, clearable=False),
+                        dcc.Dropdown(
+                            id="peak", options=PEAK_OPTIONS, value=1, clearable=False
+                        ),
                     ],
                     md=4,
                 ),
@@ -121,7 +144,9 @@ layout = dbc.Container(
         ),
         dbc.Button("ทำนาย", id="btn-predict", color="primary"),
         html.Hr(),
-        html.Div(id="forecast-result", style={"fontSize": "22px", "fontWeight": "bold"}),
+        html.Div(
+            id="forecast-result", style={"fontSize": "22px", "fontWeight": "bold"}
+        ),
     ],
     fluid=True,
 )
