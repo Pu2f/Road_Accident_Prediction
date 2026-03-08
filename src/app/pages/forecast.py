@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 from dash import html, dcc, Input, Output, State, callback
 import dash_bootstrap_components as dbc
+from src.app.components.filters import move_option_to_end
 from src.model.predict import predict_injury
 
 
@@ -37,15 +38,9 @@ def _text_options(column_name: str, fallback_values: list[str]) -> list[dict]:
     return [{"label": v, "value": v} for v in fallback_values]
 
 
-def _move_option_to_end(options: list[dict], value_to_move: str) -> list[dict]:
-    kept = [o for o in options if o["value"] != value_to_move]
-    moved = [o for o in options if o["value"] == value_to_move]
-    return kept + moved
-
-
 PROVINCE_OPTIONS = _text_options("จังหวัด", ["กรุงเทพมหานคร"])
 WEATHER_OPTIONS = _text_options("สภาพอากาศ", ["แจ่มใส"])
-WEATHER_OPTIONS = _move_option_to_end(WEATHER_OPTIONS, "อื่นๆ")
+WEATHER_OPTIONS = move_option_to_end(WEATHER_OPTIONS, "อื่นๆ")
 HOUR_OPTIONS = [{"label": str(h), "value": h} for h in range(24)]
 DOW_OPTIONS = [
     {"label": "จันทร์ (0)", "value": 0},

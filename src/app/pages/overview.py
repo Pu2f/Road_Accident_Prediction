@@ -1,56 +1,40 @@
 import os
 import pandas as pd
 import plotly.express as px
-from dash import html, dcc, dash_table
+from dash import html, dcc
 import dash_bootstrap_components as dbc
+from src.app.components.card import chart_card
 
 DATA_PATH = "data/processed/cleaned_accidents.csv"
 PRED_PATH = "artifacts/predictions_sample.csv"
-
-
-# ---- Plotly chart theme (aligned with src/app/assets/style.css) ------------
-# NOTE: Dash/Plotly can't directly read CSS variables server-side, so we keep
-# these values in sync with :root tokens used by the app.
-_PLOT_TEXT_COLOR = "#1f2a37"  # --foreground
-_PLOT_MUTED_TEXT = "#64748b"  # --muted-foreground
-_PLOT_GRID_COLOR = "#dce4ef"  # --border
-
-
-def _apply_plot_style(fig, *, x_grid: bool = True, y_grid: bool = True):
-    """Apply a light-theme Plotly style so gridlines are visible on white cards."""
-
-    if fig is None:
-        return None
-
-    fig.update_layout(
-        template="plotly_white",
-        font=dict(color=_PLOT_TEXT_COLOR),
-        title=dict(font=dict(color=_PLOT_TEXT_COLOR)),
-        legend=dict(font=dict(color=_PLOT_MUTED_TEXT)),
-    )
-
-    # Keep the chart background transparent so the card background shows.
-    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-
-    # Axes + grid (explicitly set for readability on light theme)
-    fig.update_xaxes(
-        showgrid=x_grid,
-        gridcolor=_PLOT_GRID_COLOR,
-        gridwidth=1,
-        zeroline=False,
-        tickfont=dict(color=_PLOT_MUTED_TEXT),
-        title=dict(font=dict(color=_PLOT_MUTED_TEXT)),
-    )
-    fig.update_yaxes(
-        showgrid=y_grid,
-        gridcolor=_PLOT_GRID_COLOR,
-        gridwidth=1,
-        zeroline=False,
-        tickfont=dict(color=_PLOT_MUTED_TEXT),
-        title=dict(font=dict(color=_PLOT_MUTED_TEXT)),
-    )
-
-    return fig
+CHART_PALETTE = [
+    "#0B6E4F",
+    "#1A936F",
+    "#2EC4B6",
+    "#118AB2",
+    "#3A86FF",
+    "#5E60CE",
+    "#7B2CBF",
+    "#FFD166",
+    "#FFB703",
+    "#F4A261",
+    "#E76F51",
+    "#D62828",
+    "#264653",
+    "#6B705C",
+]
+TOP_PROVINCE_COLORS = [
+    "#FF6B6B",
+    "#4D96FF",
+    "#FFC75F",
+    "#845EC2",
+    "#00C9A7",
+    "#FF9671",
+    "#0081CF",
+    "#C34A36",
+    "#4B4453",
+    "#2C73D2",
+]
 
 
 def load_data():
@@ -211,14 +195,15 @@ if len(df) and "จังหวัด" in df.columns:
         x="จังหวัด",
         y="จำนวนเหตุ",
         color="จังหวัด",
-        color_discrete_sequence=px.colors.qualitative.Set3,
+        color_discrete_sequence=TOP_PROVINCE_COLORS,
         title="Top 10 จังหวัดที่เกิดอุบัติเหตุสูง",
     )
     _fig_province.update_layout(
         showlegend=False,
         margin=dict(l=30, r=20, t=50, b=40),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
     )
-    _apply_plot_style(_fig_province, x_grid=False, y_grid=True)
 
 if len(df) and "hour" in df.columns:
     hour_series = pd.to_numeric(df["hour"], errors="coerce").dropna().astype(int)
@@ -232,8 +217,11 @@ if len(df) and "hour" in df.columns:
             markers=True,
             title="จำนวนอุบัติเหตุตามชั่วโมง",
         )
-        _fig_hour.update_layout(margin=dict(l=30, r=20, t=50, b=40))
-        _apply_plot_style(_fig_hour, x_grid=True, y_grid=True)
+        _fig_hour.update_layout(
+            margin=dict(l=30, r=20, t=50, b=40),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
 
 # ✅ pie chart
 vehicle_col_candidates = [
@@ -283,96 +271,30 @@ if vehicle_col and len(df):
         values="จำนวนเหตุ",
         title="สัดส่วนประเภทรถที่เกิดอุบัติเหตุ",
         hole=0.35,
+        color_discrete_sequence=CHART_PALETTE,
     )
     _fig_vehicle.update_traces(textinfo="none", hoverinfo="label+percent", sort=False)
     _fig_vehicle.update_layout(
         uniformtext_minsize=10,
         uniformtext_mode="hide",
         margin=dict(l=20, r=20, t=50, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
     )
-    _apply_plot_style(_fig_vehicle, x_grid=False, y_grid=False)
 
 if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
     _fig_ap = px.scatter(
         pred_df,
         x="actual",
         y="predicted",
+        color="abs_error",
+        color_continuous_scale="Turbo",
         trendline="ols",
         title="Actual vs Predicted",
     )
-    _fig_ap.update_layout(margin=dict(l=30, r=20, t=50, b=40))
-    _apply_plot_style(_fig_ap, x_grid=True, y_grid=True)
-
-
-def _chart_card(fig):
-    """Wrap a Plotly figure in a styled section card."""
-    return dbc.Card(
-        dbc.CardBody(dcc.Graph(figure=fig, className="chart-graph")),
-        className="section-card",
-    )
-
-
-def _make_province_summary(df: pd.DataFrame, top_n: int | None = 10) -> pd.DataFrame:
-    """Build a summary table of accident counts by province.
-
-    Includes:
-    - จำนวนเหตุ (count)
-    - ส่วนแบ่ง (%) ที่เกิดขึ้นในแต่ละจังหวัด
-    - จุดที่เกิดอุบัติเหตุบ่อยที่สุด (ถ้ามีคอลัมน์ข้อมูล)
-
-    If ``top_n`` is None, returns all provinces.
-    """
-
-    if df.empty or "จังหวัด" not in df.columns:
-        return pd.DataFrame()
-
-    total = len(df)
-    prov_series = df["จังหวัด"].fillna("ไม่ระบุ").astype(str)
-    counts = prov_series.value_counts().reset_index()
-    counts.columns = ["จังหวัด", "จำนวนเหตุ"]
-    counts.insert(0, "ลำดับ", range(1, len(counts) + 1))
-    counts["ส่วนแบ่ง (%)"] = (counts["จำนวนเหตุ"] / total * 100).map("{:.1f}%".format)
-
-    if top_n is not None:
-        counts = counts.head(top_n)
-
-    if "บริเวณที่เกิดเหตุ" in df.columns:
-        loc_series = df["บริเวณที่เกิดเหตุ"].fillna("ไม่ระบุ").astype(str)
-        top_locations = []
-        for prov in counts["จังหวัด"]:
-            mask = prov_series == prov
-            loc_counts = loc_series[mask].value_counts()
-            top_locations.append(loc_counts.idxmax() if len(loc_counts) else "ไม่ระบุ")
-        counts["จุดที่เกิดบ่อยที่สุด"] = top_locations
-
-    return counts
-
-
-def _data_table(df: pd.DataFrame, max_rows: int | None = 10, max_cols: int = 10):
-    """Show a small sample of the dataframe as a scrollable Dash data table."""
-
-    if df.empty:
-        return html.Div("ไม่พบข้อมูลสำหรับแสดงในตาราง", className="text-muted")
-
-    cols = df.columns.tolist()[:max_cols]
-    sample = df[cols] if max_rows is None else df[cols].head(max_rows)
-
-    return dash_table.DataTable(
-        columns=[{"name": c, "id": c} for c in sample.columns],
-        data=sample.to_dict("records"),
-        page_action="none",
-        style_table={"maxHeight": "520px", "overflowY": "auto", "overflowX": "auto"},
-        fixed_rows={"headers": True},
-        style_cell={
-            "textAlign": "left",
-            "padding": "6px",
-            "whiteSpace": "normal",
-            "minWidth": "120px",
-        },
-        style_cell_conditional=[
-            {"if": {"column_id": "ลำดับ"}, "width": "60px", "maxWidth": "60px"},
-        ],
-        style_header={"fontWeight": "bold"},
+    _fig_ap.update_layout(
+        margin=dict(l=30, r=20, t=50, b=40),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
     )
 
 
@@ -382,9 +304,9 @@ chart_rows = []
 # Row 1: Top-10 province bar  +  vehicle pie  (side-by-side)
 _row1_cols = []
 if _fig_province:
-    _row1_cols.append(dbc.Col(_chart_card(_fig_province), md=6))
+    _row1_cols.append(dbc.Col(chart_card(_fig_province), md=6))
 if _fig_vehicle:
-    _row1_cols.append(dbc.Col(_chart_card(_fig_vehicle), md=6))
+    _row1_cols.append(dbc.Col(chart_card(_fig_vehicle), md=6))
 if _row1_cols:
     chart_rows.append(dbc.Row(_row1_cols, className="g-3 mb-3"))
 
@@ -392,10 +314,10 @@ if _row1_cols:
 _row2_cols = []
 if _fig_hour:
     _hour_width = 6 if _fig_ap else 12
-    _row2_cols.append(dbc.Col(_chart_card(_fig_hour), md=_hour_width))
+    _row2_cols.append(dbc.Col(chart_card(_fig_hour), md=_hour_width))
 if _fig_ap:
     _ap_width = 6 if _fig_hour else 12
-    _row2_cols.append(dbc.Col(_chart_card(_fig_ap), md=_ap_width))
+    _row2_cols.append(dbc.Col(chart_card(_fig_ap), md=_ap_width))
 if _row2_cols:
     chart_rows.append(dbc.Row(_row2_cols, className="g-3 mb-3"))
 
@@ -425,24 +347,6 @@ layout = dbc.Container(
         ),
         # -- Charts grid --
         *chart_rows,
-        # -- Data table summary --
-        html.Div(
-            [
-                html.H5("📋 สรุปอุบัติเหตุตามจังหวัด", className="ov-section-title"),
-                html.Hr(className="ov-divider"),
-                dbc.Card(
-                    dbc.CardBody(
-                        _data_table(
-                            _make_province_summary(df, top_n=None),
-                            max_rows=None,
-                            max_cols=5,
-                        )
-                    ),
-                    className="section-card",
-                ),
-            ],
-            className="mt-3 mb-4",
-        ),
     ],
     fluid=True,
     className="page-wrap pb-4",

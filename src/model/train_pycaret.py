@@ -1,13 +1,24 @@
-import json
 import numpy as np
 import pandas as pd
 from pycaret.regression import (
     setup, compare_models, tune_model, finalize_model,
     save_model, pull, predict_model
 )
+from src.data.feature_engineering import build_model_features
+from src.model.evaluate import regression_metrics, save_metrics, save_predictions_sample
+from src.utils.config import (
+    DATA_DIR,
+    MODEL_BASENAME,
+    LEADERBOARD_CSV,
+    METRICS_JSON,
+    PREDICTIONS_SAMPLE_CSV,
+    ensure_project_dirs,
+)
+from src.utils.logger import get_logger
 
 TARGET = "รวมจำนวนผู้บาดเจ็บ"
-DATA_PATH = "data/processed/cleaned_accidents.parquet"
+DATA_PATH = DATA_DIR / "processed" / "cleaned_accidents.parquet"
+logger = get_logger("train")
 
 FEATURES = [
     "จังหวัด", "สภาพอากาศ", "ลักษณะการเกิดเหตุ", "มูลเหตุสันนิษฐาน",
@@ -16,7 +27,10 @@ FEATURES = [
 ]
 
 def main():
+    ensure_project_dirs()
+
     df = pd.read_parquet(DATA_PATH)
+    df = build_model_features(df)
 
     use_cols = [c for c in FEATURES if c in df.columns] + [TARGET]
     df = df[use_cols].copy()
@@ -58,19 +72,20 @@ def main():
     best = compare_models()
     tuned = tune_model(best)
     final_model = finalize_model(tuned)
-    save_model(final_model, "models/final_model")
+    save_model(final_model, str(MODEL_BASENAME))
 
     leaderboard = pull()
-    leaderboard.to_csv("artifacts/leaderboard.csv", index=False, encoding="utf-8-sig")
+    leaderboard.to_csv(LEADERBOARD_CSV, index=False, encoding="utf-8-sig")
 
     pred_df = predict_model(final_model, data=df)
-    mae = (pred_df[TARGET] - pred_df["prediction_label"]).abs().mean()
+    metrics = regression_metrics(pred_df[TARGET], pred_df["prediction_label"])
+    save_metrics(metrics, METRICS_JSON)
+    save_predictions_sample(pred_df, PREDICTIONS_SAMPLE_CSV)
 
-    with open("artifacts/metrics.json", "w", encoding="utf-8") as f:
-        json.dump({"mae": float(mae), "n_rows": int(len(df))}, f, ensure_ascii=False, indent=2)
-
-    print("saved: models/final_model.pkl")
-    print("saved: artifacts/leaderboard.csv, metrics.json")
+    logger.info("saved: %s.pkl", MODEL_BASENAME)
+    logger.info("saved: %s", LEADERBOARD_CSV)
+    logger.info("saved: %s", METRICS_JSON)
+    logger.info("saved: %s", PREDICTIONS_SAMPLE_CSV)
 
 if __name__ == "__main__":
     main()

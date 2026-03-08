@@ -1,7 +1,11 @@
+from functools import lru_cache
+
 import pandas as pd
 from pycaret.regression import load_model, predict_model
+from src.data.feature_engineering import build_model_features
+from src.utils.config import MODEL_BASENAME
 
-MODEL_PATH = "models/final_model"
+MODEL_PATH = str(MODEL_BASENAME)
 
 DEFAULT_INPUT = {
     "จังหวัด": "กรุงเทพมหานคร",
@@ -18,11 +22,17 @@ DEFAULT_INPUT = {
 }
 
 
+@lru_cache(maxsize=1)
+def _get_model():
+    return load_model(MODEL_PATH)
+
+
 def predict_injury(input_dict: dict) -> float:
-    model = load_model(MODEL_PATH)
+    model = _get_model()
     payload = DEFAULT_INPUT.copy()
     payload.update(input_dict or {})
 
     x = pd.DataFrame([payload])
+    x = build_model_features(x)
     pred = predict_model(model, data=x)
     return float(pred["prediction_label"].iloc[0])
