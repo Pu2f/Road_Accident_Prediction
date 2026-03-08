@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import plotly.express as px
-from dash import html, dcc
+from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 
 DATA_PATH = "data/processed/cleaned_accidents.csv"
@@ -47,49 +47,121 @@ df = load_data()
 pred_df = load_pred()
 data_year_text = get_data_year_text(df)
 
-cards = dbc.Row(
-    [
-        dbc.Col(
-            dbc.Card(dbc.CardBody([html.H5("จำนวนแถวข้อมูล"), html.H3(f"{len(df):,}")]))
-        ),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody(
+
+def _kpi(icon, label, value, accent):
+    """Build a single KPI card with icon and accent colour."""
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.Div(
                     [
-                        html.H5("จำนวนจังหวัด"),
-                        html.H3(
-                            f"{df['จังหวัด'].nunique() if 'จังหวัด' in df.columns else 0:,}"
+                        html.Span(
+                            icon, className="kpi-icon", style={"background": accent}
                         ),
-                    ]
-                )
-            )
-        ),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.H5("บาดเจ็บรวมเฉลี่ย"),
-                        html.H3(
-                            f"{pd.to_numeric(df['รวมจำนวนผู้บาดเจ็บ'], errors='coerce').mean():.2f}"
-                            if "รวมจำนวนผู้บาดเจ็บ" in df.columns and len(df)
-                            else "N/A"
+                        html.Div(
+                            [
+                                html.P(label, className="kpi-label mb-0"),
+                                html.H3(value, className="kpi-value mb-0"),
+                            ]
                         ),
-                    ]
-                )
-            )
+                    ],
+                    className="d-flex align-items-center gap-3",
+                ),
+            ]
         ),
-    ],
-    className="mb-3",
+        className="kpi-card",
+    )
+
+
+_injury_avg = (
+    f"{pd.to_numeric(df['รวมจำนวนผู้บาดเจ็บ'], errors='coerce').mean():.2f}"
+    if "รวมจำนวนผู้บาดเจ็บ" in df.columns and len(df)
+    else "N/A"
 )
 
-graphs = []
+cards = dbc.Card(
+    dbc.CardBody(
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.Span(
+                                "📊",
+                                className="kpi-icon",
+                                style={"background": "#e8f0fe"},
+                            ),
+                            html.Div(
+                                [
+                                    html.P("จำนวนแถวข้อมูล", className="kpi-label mb-0"),
+                                    html.H4(f"{len(df):,}", className="kpi-value mb-0"),
+                                ]
+                            ),
+                        ],
+                        className="d-flex align-items-center gap-3",
+                    ),
+                    className="kpi-cell",
+                ),
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.Span(
+                                "🗺️",
+                                className="kpi-icon",
+                                style={"background": "#fef3e2"},
+                            ),
+                            html.Div(
+                                [
+                                    html.P("จำนวนจังหวัด", className="kpi-label mb-0"),
+                                    html.H4(
+                                        f"{df['จังหวัด'].nunique() if 'จังหวัด' in df.columns else 0:,}",
+                                        className="kpi-value mb-0",
+                                    ),
+                                ]
+                            ),
+                        ],
+                        className="d-flex align-items-center gap-3",
+                    ),
+                    className="kpi-cell",
+                ),
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.Span(
+                                "🏥",
+                                className="kpi-icon",
+                                style={"background": "#e6f9f0"},
+                            ),
+                            html.Div(
+                                [
+                                    html.P("บาดเจ็บรวมเฉลี่ย", className="kpi-label mb-0"),
+                                    html.H4(_injury_avg, className="kpi-value mb-0"),
+                                ]
+                            ),
+                        ],
+                        className="d-flex align-items-center gap-3",
+                    ),
+                    className="kpi-cell",
+                ),
+            ],
+            className="g-0 align-items-center",
+        )
+    ),
+    className="kpi-strip mb-4",
+)
+
+# -- Collect chart figures into named slots for grid placement ----------------
+_fig_province = None
+_fig_hour = None
+_fig_vehicle = None
+_fig_ap = None
 
 if len(df) and "จังหวัด" in df.columns:
     top_province = (
         df["จังหวัด"].fillna("ไม่ระบุ").astype(str).value_counts().head(10).reset_index()
     )
     top_province.columns = ["จังหวัด", "จำนวนเหตุ"]
-    fig_province = px.bar(
+    _fig_province = px.bar(
         top_province,
         x="จังหวัด",
         y="จำนวนเหตุ",
@@ -97,24 +169,32 @@ if len(df) and "จังหวัด" in df.columns:
         color_discrete_sequence=px.colors.qualitative.Set3,
         title="Top 10 จังหวัดที่เกิดอุบัติเหตุสูง",
     )
-    fig_province.update_layout(showlegend=False)
-    graphs.append(dcc.Graph(figure=fig_province))
+    _fig_province.update_layout(
+        showlegend=False,
+        margin=dict(l=30, r=20, t=50, b=40),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
 
 if len(df) and "hour" in df.columns:
     hour_series = pd.to_numeric(df["hour"], errors="coerce").dropna().astype(int)
     if len(hour_series):
         hour_count = hour_series.value_counts().sort_index().reset_index()
         hour_count.columns = ["hour", "จำนวนเหตุ"]
-        fig_hour = px.line(
+        _fig_hour = px.line(
             hour_count,
             x="hour",
             y="จำนวนเหตุ",
             markers=True,
             title="จำนวนอุบัติเหตุตามชั่วโมง",
         )
-        graphs.append(dcc.Graph(figure=fig_hour))
+        _fig_hour.update_layout(
+            margin=dict(l=30, r=20, t=50, b=40),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
 
-# ✅ pie chart ต้องอยู่ก่อนสร้าง layout
+# ✅ pie chart
 vehicle_col_candidates = [
     "ประเภทรถ",
     "ประเภทรถที่เกิดเหตุ",
@@ -156,36 +236,176 @@ if vehicle_col and len(df):
             ignore_index=True,
         )
 
-    fig_vehicle_pie = px.pie(
+    _fig_vehicle = px.pie(
         vehicle_count,
         names="ประเภทรถ",
         values="จำนวนเหตุ",
         title="สัดส่วนประเภทรถที่เกิดอุบัติเหตุ",
         hole=0.35,
     )
-    fig_vehicle_pie.update_traces(
-        textinfo="none", hoverinfo="label+percent", sort=False
+    _fig_vehicle.update_traces(textinfo="none", hoverinfo="label+percent", sort=False)
+    _fig_vehicle.update_layout(
+        uniformtext_minsize=10,
+        uniformtext_mode="hide",
+        margin=dict(l=20, r=20, t=50, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
     )
-    fig_vehicle_pie.update_layout(uniformtext_minsize=10, uniformtext_mode="hide")
-    graphs.append(dcc.Graph(figure=fig_vehicle_pie))
 
 if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
-    fig_ap = px.scatter(
+    _fig_ap = px.scatter(
         pred_df,
         x="actual",
         y="predicted",
         trendline="ols",
         title="Actual vs Predicted",
     )
-    graphs.append(dcc.Graph(figure=fig_ap))
+    _fig_ap.update_layout(
+        margin=dict(l=30, r=20, t=50, b=40),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+
+
+def _chart_card(fig):
+    """Wrap a Plotly figure in a styled section card."""
+    return dbc.Card(
+        dbc.CardBody(dcc.Graph(figure=fig, className="chart-graph")),
+        className="section-card",
+    )
+
+
+def _make_province_summary(df: pd.DataFrame, top_n: int | None = 10) -> pd.DataFrame:
+    """Build a summary table of accident counts by province.
+
+    Includes:
+    - จำนวนเหตุ (count)
+    - ส่วนแบ่ง (%) ที่เกิดขึ้นในแต่ละจังหวัด
+    - จุดที่เกิดอุบัติเหตุบ่อยที่สุด (ถ้ามีคอลัมน์ข้อมูล)
+
+    If ``top_n`` is None, returns all provinces.
+    """
+
+    if df.empty or "จังหวัด" not in df.columns:
+        return pd.DataFrame()
+
+    total = len(df)
+    prov_series = df["จังหวัด"].fillna("ไม่ระบุ").astype(str)
+    counts = prov_series.value_counts().reset_index()
+    counts.columns = ["จังหวัด", "จำนวนเหตุ"]
+    counts.insert(0, "ลำดับ", range(1, len(counts) + 1))
+    counts["ส่วนแบ่ง (%)"] = (counts["จำนวนเหตุ"] / total * 100).map("{:.1f}%".format)
+
+    if top_n is not None:
+        counts = counts.head(top_n)
+
+    if "บริเวณที่เกิดเหตุ" in df.columns:
+        loc_series = df["บริเวณที่เกิดเหตุ"].fillna("ไม่ระบุ").astype(str)
+        top_locations = []
+        for prov in counts["จังหวัด"]:
+            mask = prov_series == prov
+            loc_counts = loc_series[mask].value_counts()
+            top_locations.append(loc_counts.idxmax() if len(loc_counts) else "ไม่ระบุ")
+        counts["จุดที่เกิดบ่อยที่สุด"] = top_locations
+
+    return counts
+
+
+def _data_table(df: pd.DataFrame, max_rows: int | None = 10, max_cols: int = 10):
+    """Show a small sample of the dataframe as a scrollable Dash data table."""
+
+    if df.empty:
+        return html.Div("ไม่พบข้อมูลสำหรับแสดงในตาราง", className="text-muted")
+
+    cols = df.columns.tolist()[:max_cols]
+    sample = df[cols] if max_rows is None else df[cols].head(max_rows)
+
+    return dash_table.DataTable(
+        columns=[{"name": c, "id": c} for c in sample.columns],
+        data=sample.to_dict("records"),
+        page_action="none",
+        style_table={"maxHeight": "520px", "overflowY": "auto", "overflowX": "auto"},
+        fixed_rows={"headers": True},
+        style_cell={
+            "textAlign": "left",
+            "padding": "6px",
+            "whiteSpace": "normal",
+            "minWidth": "120px",
+        },
+        style_cell_conditional=[
+            {"if": {"column_id": "ลำดับ"}, "width": "60px", "maxWidth": "60px"},
+        ],
+        style_header={"fontWeight": "bold"},
+    )
+
+
+# -- Build grid rows ---------------------------------------------------------
+chart_rows = []
+
+# Row 1: Top-10 province bar  +  vehicle pie  (side-by-side)
+_row1_cols = []
+if _fig_province:
+    _row1_cols.append(dbc.Col(_chart_card(_fig_province), md=6))
+if _fig_vehicle:
+    _row1_cols.append(dbc.Col(_chart_card(_fig_vehicle), md=6))
+if _row1_cols:
+    chart_rows.append(dbc.Row(_row1_cols, className="g-3 mb-3"))
+
+# Row 2: hourly line  +  actual-vs-predicted  (side-by-side, or full-width if alone)
+_row2_cols = []
+if _fig_hour:
+    _hour_width = 6 if _fig_ap else 12
+    _row2_cols.append(dbc.Col(_chart_card(_fig_hour), md=_hour_width))
+if _fig_ap:
+    _ap_width = 6 if _fig_hour else 12
+    _row2_cols.append(dbc.Col(_chart_card(_fig_ap), md=_ap_width))
+if _row2_cols:
+    chart_rows.append(dbc.Row(_row2_cols, className="g-3 mb-3"))
 
 layout = dbc.Container(
     [
-        html.H3("Overview Dashboard"),
-        html.P("ภาพรวมข้อมูลอุบัติเหตุและผลโมเดล"),
-        html.P(data_year_text, className="text-muted"),
+        # -- Page header --
+        html.Div(
+            [
+                html.H3("Overview Dashboard", className="ov-heading"),
+                html.P(
+                    "ภาพรวมข้อมูลอุบัติเหตุและผลโมเดล",
+                    className="section-subtitle mb-0",
+                ),
+                html.Small(data_year_text, className="text-muted"),
+            ],
+            className="ov-page-header mb-4",
+        ),
+        # -- KPI cards --
         cards,
-        *graphs,
+        # -- Section divider --
+        html.Div(
+            [
+                html.H5("📈 กราฟวิเคราะห์", className="ov-section-title"),
+                html.Hr(className="ov-divider"),
+            ],
+            className="mt-2 mb-3",
+        ),
+        # -- Charts grid --
+        *chart_rows,
+        # -- Data table summary --
+        html.Div(
+            [
+                html.H5("📋 สรุปอุบัติเหตุตามจังหวัด", className="ov-section-title"),
+                html.Hr(className="ov-divider"),
+                dbc.Card(
+                    dbc.CardBody(
+                        _data_table(
+                            _make_province_summary(df, top_n=None),
+                            max_rows=None,
+                            max_cols=5,
+                        )
+                    ),
+                    className="section-card",
+                ),
+            ],
+            className="mt-3 mb-4",
+        ),
     ],
     fluid=True,
+    className="page-wrap pb-4",
 )

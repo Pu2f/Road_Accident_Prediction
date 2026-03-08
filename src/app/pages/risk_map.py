@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import plotly.express as px
-from dash import html, dcc
+from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 
 DATA_PATH = "data/processed/cleaned_accidents.csv"
@@ -91,6 +91,31 @@ def load_and_score() -> pd.DataFrame:
 
 df = load_and_score()
 
+
+# Summaries for “most frequent” and “most dangerous” locations
+def _top_locations(df: pd.DataFrame, top_n: int = 3):
+    """Return top locations by frequency and by average risk score."""
+
+    if df.empty or not {"lat_bin", "lon_bin"}.issubset(df.columns):
+        return pd.DataFrame(), pd.DataFrame()
+
+    grp = (
+        df.groupby(["lat_bin", "lon_bin"])
+        .agg(
+            count=("risk_score", "size"),
+            avg_risk=("risk_score", "mean"),
+        )
+        .reset_index()
+    )
+
+    top_freq = grp.sort_values("count", ascending=False).head(top_n)
+    top_risk = grp.sort_values("avg_risk", ascending=False).head(top_n)
+
+    return top_freq, top_risk
+
+
+freq_tbl, risk_tbl = _top_locations(df)
+
 if len(df) > 18000:
     df_plot = df.sample(18000, random_state=42)
 else:
@@ -101,7 +126,86 @@ content = []
 if df_plot.empty:
     content.append(dbc.Alert("ไม่พบข้อมูลพิกัดสำหรับสร้าง Risk Map", color="warning"))
 else:
-    # 1) Discrete level map (อธิบายง่ายเวลา present)
+    # 1) Summary cards for most frequent / most dangerous locations
+    if not freq_tbl.empty and not risk_tbl.empty:
+        summary_card = dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody(
+                            [
+                                html.H5(
+                                    "จุดที่เกิดเหตุมากที่สุด (Top 3)", className="card-title"
+                                ),
+                                dash_table.DataTable(
+                                    columns=[
+                                        {"name": "ลำดับ", "id": "rank"},
+                                        {"name": "Latitude", "id": "lat"},
+                                        {"name": "Longitude", "id": "lon"},
+                                        {"name": "จำนวนเหตุ", "id": "count"},
+                                    ],
+                                    data=[
+                                        {
+                                            "rank": i + 1,
+                                            "lat": f"{row['lat_bin']:.4f}",
+                                            "lon": f"{row['lon_bin']:.4f}",
+                                            "count": int(row["count"]),
+                                        }
+                                        for i, row in freq_tbl.reset_index(
+                                            drop=True
+                                        ).iterrows()
+                                    ],
+                                    style_cell={"padding": "4px", "textAlign": "left"},
+                                    style_header={"fontWeight": "bold"},
+                                    style_table={"overflowX": "auto"},
+                                    page_action="none",
+                                ),
+                            ]
+                        ),
+                        className="section-card",
+                    ),
+                    md=6,
+                ),
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody(
+                            [
+                                html.H5("จุดที่อันตรายที่สุด (Top 3)", className="card-title"),
+                                dash_table.DataTable(
+                                    columns=[
+                                        {"name": "ลำดับ", "id": "rank"},
+                                        {"name": "Latitude", "id": "lat"},
+                                        {"name": "Longitude", "id": "lon"},
+                                        {"name": "คะแนนความเสี่ยงเฉลี่ย", "id": "avg_risk"},
+                                    ],
+                                    data=[
+                                        {
+                                            "rank": i + 1,
+                                            "lat": f"{row['lat_bin']:.4f}",
+                                            "lon": f"{row['lon_bin']:.4f}",
+                                            "avg_risk": f"{row['avg_risk']:.1f}",
+                                        }
+                                        for i, row in risk_tbl.reset_index(
+                                            drop=True
+                                        ).iterrows()
+                                    ],
+                                    style_cell={"padding": "4px", "textAlign": "left"},
+                                    style_header={"fontWeight": "bold"},
+                                    style_table={"overflowX": "auto"},
+                                    page_action="none",
+                                ),
+                            ]
+                        ),
+                        className="section-card",
+                    ),
+                    md=6,
+                ),
+            ],
+            className="mb-3",
+        )
+        content.append(summary_card)
+
+    # 2) Discrete level map (อธิบายง่ายเวลา present)
     fig_level = px.scatter_mapbox(
         df_plot,
         lat="LATITUDE",
@@ -126,7 +230,20 @@ else:
     )
 
     content.append(
-        dbc.Row([dbc.Col(dcc.Graph(figure=fig_level), md=12)], className="mb-3")
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody(
+                            dcc.Graph(figure=fig_level, className="chart-graph")
+                        ),
+                        className="section-card",
+                    ),
+                    md=12,
+                )
+            ],
+            className="mb-3",
+        )
     )
 
 layout = dbc.Container(
@@ -135,9 +252,11 @@ layout = dbc.Container(
         html.P(
             "Risk Score (0-100) คำนวณจากการผสาน 3 ปัจจัยหลัก ได้แก่ ความรุนแรงของเหตุการณ์ "
             "(จำนวนผู้บาดเจ็บ + น้ำหนักผู้เสียชีวิต), ความถี่การเกิดซ้ำในพื้นที่ใกล้เคียง (area frequency), "
-            "และการเกิดเหตุในช่วงเวลาเร่งด่วน (is_peak_hour)"
+            "และการเกิดเหตุในช่วงเวลาเร่งด่วน (is_peak_hour)",
+            className="section-subtitle",
         ),
         *content,
     ],
     fluid=True,
+    className="page-wrap pb-4",
 )

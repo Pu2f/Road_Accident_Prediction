@@ -1,4 +1,5 @@
-from src.app.pages.risk_map import layout as risk_map_layout
+from pathlib import Path
+
 from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 
@@ -6,27 +7,41 @@ from src.app.pages.overview import layout as overview_layout
 from src.app.pages.forecast import layout as forecast_layout
 from src.app.pages.risk_map import layout as risk_map_layout
 
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+
 app = Dash(
     __name__,
     external_stylesheets=[dbc.themes.BOOTSTRAP],
+    assets_folder=str(ASSETS_DIR),
     suppress_callback_exceptions=True,
 )
 
 app.layout = dbc.Container(
     [
-        html.H2("Road Accident Forecast Dashboard", className="my-3"),
+        html.Div(
+            [
+                html.H2("Road Accident Forecast Dashboard", className="app-title"),
+                html.P(
+                    "ข้อมูลอุบัติเหตุบนโครงข่ายถนนของกระทรวงคมนาคม ประกอบด้วย อุบัติเหตุที่เกิดขึ้นบนถนนทางหลวง ทางหลวงชนบท และทางด่วน",
+                    className="app-subtitle",
+                ),
+            ],
+            className="app-hero",
+        ),
         dcc.Tabs(
             id="tabs",
             value="overview",
+            className="app-tabs",
             children=[
                 dcc.Tab(label="Overview", value="overview"),
                 dcc.Tab(label="Forecast", value="forecast"),
                 dcc.Tab(label="Risk Map", value="risk_map"),
             ],
         ),
-        html.Div(id="tab-content", className="mt-3"),
+        html.Div(id="tab-content", className="app-content mt-3"),
     ],
     fluid=True,
+    className="app-shell py-3 py-md-4",
 )
 
 

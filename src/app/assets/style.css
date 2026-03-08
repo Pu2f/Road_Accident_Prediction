@@ -1,207 +1,247 @@
-@import url("https://fonts.googleapis.com/css2?family=Chonburi&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap");
-
 :root {
-  --bg: #f3f7f1;
-  --bg-soft: #ffffff;
-  --text-main: #213a2f;
-  --text-soft: #4f6a5d;
-  --brand: #2a8f5d;
-  --brand-deep: #1f6f47;
-  --accent: #f0b429;
-  --line: #dbe8df;
-  --shadow: 0 12px 30px rgba(30, 64, 48, 0.12);
+  --background: #f4f7fb;
+  --foreground: #1f2a37;
+  --card: #ffffff;
+  --card-foreground: #1f2a37;
+  --primary: #265ed7;
+  --primary-foreground: #ffffff;
+  --muted: #eef3fa;
+  --muted-foreground: #64748b;
+  --border: #dce4ef;
+}
+
+html,
+body {
+  background: radial-gradient(circle at top right, #eef3ff 0%, transparent 40%),
+    radial-gradient(circle at top left, #f8fbff 0%, transparent 38%),
+    var(--background);
+  color: var(--foreground);
 }
 
 body {
-  background:
-    radial-gradient(circle at 12% 8%, rgba(240, 180, 41, 0.14), transparent 28%),
-    radial-gradient(circle at 90% 12%, rgba(42, 143, 93, 0.14), transparent 36%),
-    var(--bg);
-  color: var(--text-main);
-  font-family: "Noto Sans Thai", sans-serif;
-  min-height: 100vh;
+  font-family: "Inter", "Noto Sans Thai", system-ui, -apple-system, sans-serif;
 }
 
-h2,
-h3 {
-  color: var(--text-main);
-  font-weight: 700;
+.app-shell {
+  max-width: 1320px;
 }
 
-h2 {
-  font-family: "Chonburi", serif;
-  letter-spacing: 0.4px;
-}
-
-.card {
+.app-hero {
+  background: linear-gradient(120deg, #ffffff 0%, #f6f9ff 100%);
+  border: 1px solid var(--border);
   border-radius: 18px;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 24px rgba(25, 43, 74, 0.08);
 }
 
-#tabs {
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid var(--line);
+.app-title {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: #1b2a44;
+}
+
+.app-subtitle {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+}
+
+#tabs.app-tabs {
+  background: #ffffff;
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 6px;
+  box-shadow: 0 6px 18px rgba(23, 36, 61, 0.05);
 }
 
-#tabs .tab {
-  border: none !important;
+#tabs.app-tabs .tab {
+  border: 0 !important;
   border-radius: 10px;
-  padding: 10px 14px !important;
-  color: var(--text-soft) !important;
+  color: #526179 !important;
   font-weight: 600;
+  padding: 10px 14px !important;
   transition: all 0.2s ease;
 }
 
-#tabs .tab--selected {
-  background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+#tabs.app-tabs .tab--selected {
+  background: linear-gradient(135deg, #2f66e4, #1f4fc2);
   color: #fff !important;
-  box-shadow: 0 8px 16px rgba(31, 111, 71, 0.25);
+  box-shadow: 0 8px 18px rgba(47, 102, 228, 0.28);
+}
+
+.app-content {
+  margin-top: 14px;
+}
+
+.page-wrap h3 {
+  margin-bottom: 0.35rem;
+  font-weight: 750;
+}
+
+.section-subtitle {
+  color: var(--muted-foreground);
+  margin-bottom: 1rem;
+}
+
+.card,
+.section-card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(17, 33, 58, 0.06);
+}
+
+/* ---------- KPI strip (long horizontal bar) ---------- */
+.kpi-strip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(17, 33, 58, 0.05);
+}
+
+.kpi-strip .card-body {
+  padding: 0;
+}
+
+.kpi-cell {
+  padding: 18px 24px;
+  position: relative;
+}
+
+.kpi-cell + .kpi-cell::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: var(--border);
+}
+
+.kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.kpi-label {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.kpi-value {
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: #1c2f4a;
+}
+
+/* ---------- Section cards (charts) ---------- */
+.section-card .card-body {
+  padding: 16px 18px;
+}
+
+.chart-graph {
+  min-height: 380px;
+}
+
+.js-plotly-plot .plotly .main-svg {
+  border-radius: 12px;
+}
+
+/* ---------- Overview page header ---------- */
+.ov-page-header {
+  background: linear-gradient(135deg, #f7faff 0%, #ffffff 60%, #f3f8ff 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px 16px;
+  box-shadow: 0 4px 14px rgba(17, 33, 58, 0.04);
+}
+
+.ov-heading {
+  font-weight: 800;
+  color: #1b2a44;
+  margin-bottom: 4px;
+}
+
+.ov-section-title {
+  font-weight: 700;
+  color: #2a3d58;
+  margin: 0;
+}
+
+.ov-divider {
+  border: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), transparent 80%);
+  opacity: 0.35;
+  margin-top: 6px;
 }
 
 .forecast-page {
-  margin-top: 0.5rem;
+  margin-top: 0.2rem;
 }
 
 .forecast-hero {
-  background: linear-gradient(140deg, #f5fff8 0%, #ffffff 65%, #fef8e6 100%);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 20px 22px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  box-shadow: var(--shadow);
-}
-
-.forecast-title {
-  margin-bottom: 6px;
-}
-
-.forecast-subtitle {
-  margin: 0;
-  color: var(--text-soft);
-}
-
-.forecast-badge-wrap {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.forecast-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(42, 143, 93, 0.25);
-  background: rgba(42, 143, 93, 0.1);
-  color: var(--brand-deep);
-  font-size: 0.84rem;
-  font-weight: 600;
+  background: linear-gradient(140deg, #f5f9ff 0%, #ffffff 65%, #f4f8ff 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 20px;
+  box-shadow: 0 8px 22px rgba(17, 33, 58, 0.06);
 }
 
 .forecast-panel,
 .forecast-sidecard,
 .forecast-result-card {
-  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(17, 33, 58, 0.06);
 }
 
 .forecast-label {
   font-weight: 600;
-  margin-bottom: 6px;
-  color: #294638;
-}
-
-.forecast-page .Select-control,
-.forecast-page .Select-menu-outer,
-.forecast-page .Select-menu,
-.forecast-page .is-open > .Select-control {
-  border-color: var(--line);
-  border-radius: 10px;
-}
-
-.forecast-page .Select-control {
-  min-height: 42px;
-  box-shadow: none;
-}
-
-.forecast-page .Select-placeholder,
-.forecast-page .Select-value-label {
-  color: var(--text-main) !important;
+  color: #314159;
 }
 
 .forecast-btn {
-  border: none;
+  border: 0;
   border-radius: 12px;
   min-height: 42px;
   font-weight: 700;
-  letter-spacing: 0.2px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-deep));
-  box-shadow: 0 10px 18px rgba(31, 111, 71, 0.28);
+  background: linear-gradient(135deg, #2f66e4, #1f4fc2);
 }
 
 .forecast-btn:hover,
 .forecast-btn:focus,
 .forecast-btn:active {
-  background: linear-gradient(135deg, #237b50, #1b5f3d) !important;
-}
-
-.forecast-side-title {
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.forecast-side-text {
-  color: var(--text-soft);
-  margin-bottom: 10px;
-}
-
-.forecast-side-list {
-  margin-bottom: 0;
-  padding-left: 1.1rem;
-  color: var(--text-soft);
-}
-
-.forecast-result-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-soft);
-  margin-bottom: 6px;
+  background: linear-gradient(135deg, #2758ca, #173f9c) !important;
 }
 
 .forecast-result-value {
-  font-size: clamp(1.15rem, 2.4vw, 1.8rem);
+  font-size: clamp(1.1rem, 2.2vw, 1.65rem);
   font-weight: 800;
-  color: var(--brand-deep);
-  line-height: 1.35;
-}
-
-@media (max-width: 992px) {
-  .forecast-hero {
-    flex-direction: column;
-  }
+  color: #1e4fc2;
 }
 
 @media (max-width: 768px) {
-  body {
-    background-size: 130% 130%;
+  .app-hero {
+    padding: 14px 14px;
   }
 
-  #tabs {
-    padding: 4px;
-  }
-
-  #tabs .tab {
+  #tabs.app-tabs .tab {
     padding: 8px 10px !important;
     font-size: 0.9rem;
   }
 
-  .forecast-hero {
-    padding: 16px;
-    border-radius: 16px;
+  .chart-graph {
+    min-height: 340px;
   }
 }
