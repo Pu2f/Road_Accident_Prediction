@@ -72,20 +72,30 @@ def clean_accident_data(df: pd.DataFrame) -> pd.DataFrame:
 
     df = build_time_features(df)
 
-    # เติมค่าว่างหมวดหมู่ด้วย Unknown
-    cat_cols = ["จังหวัด", "สภาพอากาศ", "ลักษณะการเกิดเหตุ", "มูลเหตุสันนิษฐาน", "บริเวณที่เกิดเหตุ"]
-    for c in cat_cols:
-        if c in df.columns:
-            df[c] = df[c].astype(str).fillna("Unknown").replace("nan", "Unknown")
-
-    # 🔴 ลบทุกแถวที่มี Unknown
-    unknown_values = ["Unknown"]
-
-    df = df[
-        ~df.astype(str)
-        .apply(lambda row: row.str.contains("|".join(unknown_values), na=False))
-        .any(axis=1)
+    # เติมค่าว่างหมวดหมู่ด้วย Unknown (รองรับ mixed types เช่น bytes/str/None)
+    cat_cols = [
+        "จังหวัด",
+        "สภาพอากาศ",
+        "ลักษณะการเกิดเหตุ",
+        "มูลเหตุสันนิษฐาน",
+        "บริเวณที่เกิดเหตุ",
     ]
+    present_cat_cols = [c for c in cat_cols if c in df.columns]
+    for c in present_cat_cols:
+        df[c] = df[c].map(
+            lambda x: (
+                x.decode("utf-8", errors="ignore")
+                if isinstance(x, (bytes, bytearray))
+                else x
+            )
+        )
+        df[c] = df[c].astype("string").str.strip()
+        df[c] = df[c].replace({"": pd.NA, "nan": pd.NA, "None": pd.NA, "<NA>": pd.NA})
+        df[c] = df[c].fillna("Unknown")
+
+    # 🔴 ลบทุกแถวที่มี Unknown ในคอลัมน์หมวดหมู่
+    if present_cat_cols:
+        df = df.loc[~df[present_cat_cols].eq("Unknown").any(axis=1)]
 
     # กันปัญหา mixed type ในคอลัมน์ object ตอนเขียน parquet (เช่น str/int/bytes ปนกัน)
     object_cols = df.select_dtypes(include=["object"]).columns

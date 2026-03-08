@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import plotly.express as px
-from dash import html, dcc
+from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
 from src.app.components.card import chart_card
 
@@ -185,6 +185,34 @@ _fig_hour = None
 _fig_vehicle = None
 _fig_ap = None
 
+
+def _polish_fig(fig, *, margin=None, showlegend=None):
+    if fig is None:
+        return fig
+
+    fig.update_layout(
+        title=dict(
+            text=(fig.layout.title.text if fig.layout.title else None),
+            x=0.5,
+            xanchor="center",
+            y=0.98,
+            yanchor="top",
+        ),
+        font=dict(size=12),
+        title_font=dict(size=18),
+        margin=margin or dict(l=36, r=24, t=64, b=56),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+    )
+
+    if showlegend is not None:
+        fig.update_layout(showlegend=showlegend)
+
+    fig.update_xaxes(automargin=True)
+    fig.update_yaxes(automargin=True)
+    return fig
+
+
 if len(df) and "จังหวัด" in df.columns:
     top_province = (
         df["จังหวัด"].fillna("ไม่ระบุ").astype(str).value_counts().head(10).reset_index()
@@ -198,12 +226,12 @@ if len(df) and "จังหวัด" in df.columns:
         color_discrete_sequence=TOP_PROVINCE_COLORS,
         title="Top 10 จังหวัดที่เกิดอุบัติเหตุสูง",
     )
-    _fig_province.update_layout(
-        showlegend=False,
-        margin=dict(l=30, r=20, t=50, b=40),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
+    _fig_province.update_xaxes(
+        title_text="จังหวัด",
+        tickangle=-30,
     )
+    _fig_province.update_yaxes(title_text="จำนวนเหตุ")
+    _polish_fig(_fig_province, margin=dict(l=36, r=16, t=64, b=76), showlegend=False)
 
 if len(df) and "hour" in df.columns:
     hour_series = pd.to_numeric(df["hour"], errors="coerce").dropna().astype(int)
@@ -217,11 +245,13 @@ if len(df) and "hour" in df.columns:
             markers=True,
             title="จำนวนอุบัติเหตุตามชั่วโมง",
         )
-        _fig_hour.update_layout(
-            margin=dict(l=30, r=20, t=50, b=40),
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
+        _fig_hour.update_xaxes(
+            title_text="ชั่วโมง (0–23)",
+            tickmode="linear",
+            dtick=1,
         )
+        _fig_hour.update_yaxes(title_text="จำนวนเหตุ")
+        _polish_fig(_fig_hour)
 
 # ✅ pie chart
 vehicle_col_candidates = [
@@ -277,9 +307,16 @@ if vehicle_col and len(df):
     _fig_vehicle.update_layout(
         uniformtext_minsize=10,
         uniformtext_mode="hide",
-        margin=dict(l=20, r=20, t=50, b=20),
-        paper_bgcolor="rgba(0,0,0,0)",
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.08,
+            xanchor="center",
+            x=0.5,
+            title_text="",
+        ),
     )
+    _polish_fig(_fig_vehicle, margin=dict(l=20, r=20, t=64, b=84), showlegend=True)
 
 if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
     _fig_ap = px.scatter(
@@ -291,11 +328,90 @@ if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
         trendline="ols",
         title="Actual vs Predicted",
     )
+    _fig_ap.update_xaxes(title_text="Actual")
+    _fig_ap.update_yaxes(title_text="Predicted")
     _fig_ap.update_layout(
-        margin=dict(l=30, r=20, t=50, b=40),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
+        coloraxis_colorbar=dict(
+            title="abs_error",
+            y=0.5,
+            yanchor="middle",
+            len=0.78,
+        )
     )
+    _polish_fig(_fig_ap, margin=dict(l=42, r=34, t=64, b=56))
+
+
+# -- Province summary table (full-width, bottom) -----------------------------
+_province_table_data = []
+_province_table_columns = [
+    {"name": "ลำดับ", "id": "rank"},
+    {"name": "จังหวัด", "id": "จังหวัด"},
+    {"name": "จำนวนเหตุ", "id": "จำนวนเหตุ"},
+    {"name": "ส่วนแบ่ง (%)", "id": "ส่วนแบ่ง (%)"},
+    {"name": "จุดที่เกิดบ่อยที่สุด", "id": "จุดที่เกิดบ่อยที่สุด"},
+]
+
+if len(df) and "จังหวัด" in df.columns:
+    prov_series = (
+        df["จังหวัด"]
+        .map(
+            lambda x: (
+                x.decode("utf-8", errors="ignore")
+                if isinstance(x, (bytes, bytearray))
+                else x
+            )
+        )
+        .astype("string")
+        .str.strip()
+        .replace({"": pd.NA, "nan": pd.NA, "None": pd.NA, "<NA>": pd.NA})
+        .fillna("ไม่ระบุ")
+    )
+
+    prov_counts = prov_series.value_counts()
+    total = int(prov_counts.sum()) if len(prov_counts) else 0
+
+    spot_col_candidates = ["บริเวณที่เกิดเหตุ", "ลักษณะการเกิดเหตุ", "มูลเหตุสันนิษฐาน"]
+    spot_col = next((c for c in spot_col_candidates if c in df.columns), None)
+    spot_by_prov = None
+    if spot_col is not None:
+        spot_series = (
+            df[spot_col]
+            .map(
+                lambda x: (
+                    x.decode("utf-8", errors="ignore")
+                    if isinstance(x, (bytes, bytearray))
+                    else x
+                )
+            )
+            .astype("string")
+            .str.strip()
+            .replace({"": pd.NA, "nan": pd.NA, "None": pd.NA, "<NA>": pd.NA})
+            .fillna("ไม่ระบุ")
+        )
+
+        tmp = pd.DataFrame({"จังหวัด": prov_series, "spot": spot_series})
+        spot_by_prov = (
+            tmp.groupby("จังหวัด")["spot"]
+            .agg(lambda s: s.value_counts().index[0] if len(s) else "ไม่ระบุ")
+            .to_dict()
+        )
+
+    rows = []
+    for i, (prov, cnt) in enumerate(prov_counts.items(), start=1):
+        share = (float(cnt) / float(total) * 100.0) if total else 0.0
+        rows.append(
+            {
+                "rank": i,
+                "จังหวัด": prov,
+                "จำนวนเหตุ": int(cnt),
+                "ส่วนแบ่ง (%)": f"{share:.1f}%",
+                "จุดที่เกิดบ่อยที่สุด": (
+                    spot_by_prov.get(prov, "ไม่ระบุ") if spot_by_prov else "ไม่ระบุ"
+                ),
+            }
+        )
+
+    _province_table_data = rows
 
 
 # -- Build grid rows ---------------------------------------------------------
@@ -310,16 +426,15 @@ if _fig_vehicle:
 if _row1_cols:
     chart_rows.append(dbc.Row(_row1_cols, className="g-3 mb-3"))
 
-# Row 2: hourly line  +  actual-vs-predicted  (side-by-side, or full-width if alone)
-_row2_cols = []
+# Row 2: hourly line  +  actual-vs-predicted (stacked, full-width)
 if _fig_hour:
-    _hour_width = 6 if _fig_ap else 12
-    _row2_cols.append(dbc.Col(chart_card(_fig_hour), md=_hour_width))
+    chart_rows.append(
+        dbc.Row([dbc.Col(chart_card(_fig_hour), md=12)], className="g-3 mb-3")
+    )
 if _fig_ap:
-    _ap_width = 6 if _fig_hour else 12
-    _row2_cols.append(dbc.Col(chart_card(_fig_ap), md=_ap_width))
-if _row2_cols:
-    chart_rows.append(dbc.Row(_row2_cols, className="g-3 mb-3"))
+    chart_rows.append(
+        dbc.Row([dbc.Col(chart_card(_fig_ap), md=12)], className="g-3 mb-3")
+    )
 
 layout = dbc.Container(
     [
@@ -347,6 +462,85 @@ layout = dbc.Container(
         ),
         # -- Charts grid --
         *chart_rows,
+        # -- Province summary table (bottom, full-width) --
+        html.Div(
+            [
+                html.H5("📋 สรุปอุบัติเหตุตามจังหวัด", className="ov-section-title"),
+                html.Hr(className="ov-divider"),
+            ],
+            className="mt-2 mb-3",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dbc.Card(
+                        dbc.CardBody(
+                            dash_table.DataTable(
+                                columns=_province_table_columns,
+                                data=_province_table_data,
+                                page_action="none",
+                                fixed_rows={"headers": True},
+                                style_table={
+                                    "height": "520px",
+                                    "overflowY": "auto",
+                                    "overflowX": "auto",
+                                },
+                                style_cell={
+                                    "padding": "6px",
+                                    "textAlign": "left",
+                                    "whiteSpace": "normal",
+                                    "height": "auto",
+                                    "lineHeight": "1.25",
+                                },
+                                style_header={
+                                    "fontWeight": "bold",
+                                    "textAlign": "left",
+                                },
+                                style_cell_conditional=[
+                                    {
+                                        "if": {"column_id": "rank"},
+                                        "minWidth": "10%",
+                                        "width": "10%",
+                                        "maxWidth": "10%",
+                                    },
+                                    {
+                                        "if": {"column_id": "จังหวัด"},
+                                        "minWidth": "22.5%",
+                                        "width": "22.5%",
+                                        "maxWidth": "22.5%",
+                                    },
+                                    {
+                                        "if": {"column_id": "จำนวนเหตุ"},
+                                        "minWidth": "22.5%",
+                                        "width": "22.5%",
+                                        "maxWidth": "22.5%",
+                                    },
+                                    {
+                                        "if": {
+                                            "column_id": "ส่วนแบ่ง (%)",
+                                        },
+                                        "minWidth": "22.5%",
+                                        "width": "22.5%",
+                                        "maxWidth": "22.5%",
+                                    },
+                                    {
+                                        "if": {
+                                            "column_id": "จุดที่เกิดบ่อยที่สุด",
+                                        },
+                                        "minWidth": "22.5%",
+                                        "width": "22.5%",
+                                        "maxWidth": "22.5%",
+                                    },
+                                ],
+                            )
+                        ),
+                        className="section-card",
+                    ),
+                    md=12,
+                )
+            ],
+            className="g-3 mb-3",
+        ),
     ],
     fluid=True,
     className="page-wrap pb-4",
