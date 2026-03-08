@@ -213,6 +213,27 @@ def _polish_fig(fig, *, margin=None, showlegend=None):
     return fig
 
 
+def _add_gridlines(fig, *, x: bool = True, y: bool = True):
+    if fig is None:
+        return fig
+    grid_color = "rgba(0,0,0,0.12)"
+    if x:
+        fig.update_xaxes(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor=grid_color,
+            zeroline=False,
+        )
+    if y:
+        fig.update_yaxes(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor=grid_color,
+            zeroline=False,
+        )
+    return fig
+
+
 if len(df) and "จังหวัด" in df.columns:
     top_province = (
         df["จังหวัด"].fillna("ไม่ระบุ").astype(str).value_counts().head(10).reset_index()
@@ -232,6 +253,7 @@ if len(df) and "จังหวัด" in df.columns:
     )
     _fig_province.update_yaxes(title_text="จำนวนเหตุ")
     _polish_fig(_fig_province, margin=dict(l=36, r=16, t=64, b=76), showlegend=False)
+    _add_gridlines(_fig_province, x=False, y=True)
 
 if len(df) and "hour" in df.columns:
     hour_series = pd.to_numeric(df["hour"], errors="coerce").dropna().astype(int)
@@ -252,6 +274,7 @@ if len(df) and "hour" in df.columns:
         )
         _fig_hour.update_yaxes(title_text="จำนวนเหตุ")
         _polish_fig(_fig_hour)
+        _add_gridlines(_fig_hour, x=True, y=True)
 
 # ✅ pie chart
 vehicle_col_candidates = [
@@ -308,15 +331,15 @@ if vehicle_col and len(df):
         uniformtext_minsize=10,
         uniformtext_mode="hide",
         legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=-0.08,
-            xanchor="center",
-            x=0.5,
+            orientation="v",
+            yanchor="middle",
+            y=0.5,
+            xanchor="left",
+            x=1.02,
             title_text="",
         ),
     )
-    _polish_fig(_fig_vehicle, margin=dict(l=20, r=20, t=64, b=84), showlegend=True)
+    _polish_fig(_fig_vehicle, margin=dict(l=20, r=220, t=64, b=40), showlegend=True)
 
 if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
     _fig_ap = px.scatter(
@@ -339,6 +362,7 @@ if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
         )
     )
     _polish_fig(_fig_ap, margin=dict(l=42, r=34, t=64, b=56))
+    _add_gridlines(_fig_ap, x=True, y=True)
 
 
 # -- Province summary table (full-width, bottom) -----------------------------
