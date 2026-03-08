@@ -41,3 +41,51 @@ def test_build_time_features_supports_hhmm_and_hhmmss():
 	assert out.loc[1, "is_peak_hour"] == 1
 	assert out.loc[2, "is_peak_hour"] == 0
 	assert set(["day_of_week", "month"]).issubset(set(out.columns))
+
+
+def test_clean_accident_data_filters_invalid_rows_and_builds_features():
+	df = pd.DataFrame(
+		{
+			"LATITUDE": [13.7, 40.0, 13.7],
+			"LONGITUDE": [100.5, 100.5, 100.5],
+			"รวมจำนวนผู้บาดเจ็บ": [2, 1, None],
+			"ผู้เสียชีวิต": [0, 1, 0],
+			"ผู้บาดเจ็บสาหัส": [0, 0, 0],
+			"ผู้บาดเจ็บเล็กน้อย": [2, 0, 0],
+			"เวลา": ["07:00", "08:00", "09:00"],
+			"วันที่เกิดเหตุ": ["01/01/2024", "01/01/2024", "01/01/2024"],
+			"จังหวัด": ["Bangkok", "Bangkok", "Bangkok"],
+		}
+	)
+
+	out = clean_accident_data(df)
+
+	assert len(out) == 1
+	assert out.loc[0, "LATITUDE"] == 13.7
+	assert out.loc[0, "is_peak_hour"] == 1
+	assert out.loc[0, "รวมจำนวนผู้บาดเจ็บ"] == 2
+
+
+def test_clean_accident_data_drops_rows_with_unknown_and_normalizes_object_dtype():
+	df = pd.DataFrame(
+		{
+			"LATITUDE": [13.7, 13.8],
+			"LONGITUDE": [100.5, 100.6],
+			"รวมจำนวนผู้บาดเจ็บ": [1, 1],
+			"ผู้เสียชีวิต": [0, 0],
+			"ผู้บาดเจ็บสาหัส": [0, 0],
+			"ผู้บาดเจ็บเล็กน้อย": [1, 1],
+			"จังหวัด": ["Bangkok", None],
+			"สภาพอากาศ": [b"clear", "rain"],
+			"เวลา": ["10:00", "10:00"],
+			"วันที่เกิดเหตุ": ["01/01/2024", "01/01/2024"],
+		}
+	)
+
+	out = clean_accident_data(df)
+
+	# Row with missing categorical value is converted to Unknown then removed.
+	assert len(out) == 1
+	assert out.loc[0, "จังหวัด"] == "Bangkok"
+	assert out.loc[0, "สภาพอากาศ"] == "clear"
+	assert str(out["สภาพอากาศ"].dtype) == "string"
