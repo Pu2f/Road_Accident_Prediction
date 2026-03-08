@@ -8,6 +8,51 @@ DATA_PATH = "data/processed/cleaned_accidents.csv"
 PRED_PATH = "artifacts/predictions_sample.csv"
 
 
+# ---- Plotly chart theme (aligned with src/app/assets/style.css) ------------
+# NOTE: Dash/Plotly can't directly read CSS variables server-side, so we keep
+# these values in sync with :root tokens used by the app.
+_PLOT_TEXT_COLOR = "#1f2a37"  # --foreground
+_PLOT_MUTED_TEXT = "#64748b"  # --muted-foreground
+_PLOT_GRID_COLOR = "#dce4ef"  # --border
+
+
+def _apply_plot_style(fig, *, x_grid: bool = True, y_grid: bool = True):
+    """Apply a light-theme Plotly style so gridlines are visible on white cards."""
+
+    if fig is None:
+        return None
+
+    fig.update_layout(
+        template="plotly_white",
+        font=dict(color=_PLOT_TEXT_COLOR),
+        title=dict(font=dict(color=_PLOT_TEXT_COLOR)),
+        legend=dict(font=dict(color=_PLOT_MUTED_TEXT)),
+    )
+
+    # Keep the chart background transparent so the card background shows.
+    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+
+    # Axes + grid (explicitly set for readability on light theme)
+    fig.update_xaxes(
+        showgrid=x_grid,
+        gridcolor=_PLOT_GRID_COLOR,
+        gridwidth=1,
+        zeroline=False,
+        tickfont=dict(color=_PLOT_MUTED_TEXT),
+        title=dict(font=dict(color=_PLOT_MUTED_TEXT)),
+    )
+    fig.update_yaxes(
+        showgrid=y_grid,
+        gridcolor=_PLOT_GRID_COLOR,
+        gridwidth=1,
+        zeroline=False,
+        tickfont=dict(color=_PLOT_MUTED_TEXT),
+        title=dict(font=dict(color=_PLOT_MUTED_TEXT)),
+    )
+
+    return fig
+
+
 def load_data():
     if os.path.exists(DATA_PATH):
         return pd.read_csv(DATA_PATH, low_memory=False)
@@ -172,9 +217,8 @@ if len(df) and "จังหวัด" in df.columns:
     _fig_province.update_layout(
         showlegend=False,
         margin=dict(l=30, r=20, t=50, b=40),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
     )
+    _apply_plot_style(_fig_province, x_grid=False, y_grid=True)
 
 if len(df) and "hour" in df.columns:
     hour_series = pd.to_numeric(df["hour"], errors="coerce").dropna().astype(int)
@@ -188,11 +232,8 @@ if len(df) and "hour" in df.columns:
             markers=True,
             title="จำนวนอุบัติเหตุตามชั่วโมง",
         )
-        _fig_hour.update_layout(
-            margin=dict(l=30, r=20, t=50, b=40),
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-        )
+        _fig_hour.update_layout(margin=dict(l=30, r=20, t=50, b=40))
+        _apply_plot_style(_fig_hour, x_grid=True, y_grid=True)
 
 # ✅ pie chart
 vehicle_col_candidates = [
@@ -248,8 +289,8 @@ if vehicle_col and len(df):
         uniformtext_minsize=10,
         uniformtext_mode="hide",
         margin=dict(l=20, r=20, t=50, b=20),
-        paper_bgcolor="rgba(0,0,0,0)",
     )
+    _apply_plot_style(_fig_vehicle, x_grid=False, y_grid=False)
 
 if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
     _fig_ap = px.scatter(
@@ -259,11 +300,8 @@ if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
         trendline="ols",
         title="Actual vs Predicted",
     )
-    _fig_ap.update_layout(
-        margin=dict(l=30, r=20, t=50, b=40),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-    )
+    _fig_ap.update_layout(margin=dict(l=30, r=20, t=50, b=40))
+    _apply_plot_style(_fig_ap, x_grid=True, y_grid=True)
 
 
 def _chart_card(fig):
