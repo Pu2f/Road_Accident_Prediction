@@ -150,7 +150,7 @@ body {
 }
 
 .chart-graph {
-  min-height: 380px;
+  height: 440px;
 }
 
 .js-plotly-plot .plotly .main-svg {
@@ -242,6 +242,6 @@ body {
   }
 
   .chart-graph {
-    min-height: 340px;
+    height: 380px;
   }
 }
