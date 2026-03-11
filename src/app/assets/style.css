@@ -153,6 +153,10 @@ body {
   height: 440px;
 }
 
+.risk-map-graph {
+  height: 720px;
+}
+
 .js-plotly-plot .plotly .main-svg {
   border-radius: 12px;
 }
@@ -243,5 +247,9 @@ body {
 
   .chart-graph {
     height: 380px;
+  }
+
+  .risk-map-graph {
+    height: 560px;
   }
 }

@@ -219,7 +219,7 @@ else:
         hover_name="จังหวัด",
         hover_data={"risk_score": ":.2f", "LATITUDE": ":.4f", "LONGITUDE": ":.4f"},
         zoom=4.8,
-        height=620,
+        height=720,
         mapbox_style="carto-positron",
         title="Risk Level Map (Low / Medium / High)",
         opacity=0.6,
@@ -235,7 +235,10 @@ else:
                 dbc.Col(
                     dbc.Card(
                         dbc.CardBody(
-                            dcc.Graph(figure=fig_level, className="chart-graph")
+                            dcc.Graph(
+                                figure=fig_level,
+                                className="chart-graph risk-map-graph",
+                            )
                         ),
                         className="section-card",
                     ),
