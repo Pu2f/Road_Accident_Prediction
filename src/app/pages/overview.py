@@ -72,9 +72,36 @@ def get_data_year_text(dataframe: pd.DataFrame) -> str:
     return "ปีข้อมูลที่ใช้: ไม่สามารถระบุปีจากข้อมูลได้"
 
 
+def get_available_years(dataframe: pd.DataFrame) -> list[int]:
+    year_col = "ปีที่เกิดเหตุ"
+    if len(dataframe) == 0 or year_col not in dataframe.columns:
+        return []
+
+    return (
+        pd.to_numeric(dataframe[year_col], errors="coerce")
+        .dropna()
+        .astype(int)
+        .sort_values()
+        .unique()
+        .tolist()
+    )
+
+
+def get_year_range_label(dataframe: pd.DataFrame) -> str | None:
+    years = get_available_years(dataframe)
+    if not years:
+        return None
+
+    min_year, max_year = years[0], years[-1]
+    if min_year == max_year:
+        return str(min_year)
+    return f"{min_year}-{max_year}"
+
+
 df = load_data()
 pred_df = load_pred()
 data_year_text = get_data_year_text(df)
+province_year_range = get_year_range_label(df)
 
 
 def _kpi(icon, label, value, accent):
@@ -239,13 +266,18 @@ if len(df) and "จังหวัด" in df.columns:
         df["จังหวัด"].fillna("ไม่ระบุ").astype(str).value_counts().head(10).reset_index()
     )
     top_province.columns = ["จังหวัด", "จำนวนเหตุ"]
+    province_title = (
+        f"Top 10 จังหวัดที่เกิดอุบัติเหตุสูง (สะสมปี {province_year_range})"
+        if province_year_range
+        else "Top 10 จังหวัดที่เกิดอุบัติเหตุสูง"
+    )
     _fig_province = px.bar(
         top_province,
         x="จังหวัด",
         y="จำนวนเหตุ",
         color="จังหวัด",
         color_discrete_sequence=TOP_PROVINCE_COLORS,
-        title="Top 10 จังหวัดที่เกิดอุบัติเหตุสูง",
+        title=province_title,
     )
     _fig_province.update_xaxes(
         title_text="จังหวัด",

@@ -27,7 +27,7 @@ NUMERIC_COLS = [
 
 def normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    df.columns = [c.strip() for c in df.columns]
+    df.columns = [c.replace("\ufeff", "").strip() for c in df.columns]
     df = df.rename(columns=COLUMN_ALIASES)
     return df
 
