@@ -34,4 +34,18 @@ def save_predictions_sample(pred_df: pd.DataFrame, out_path: str | Path, sample_
 	path = Path(out_path)
 	path.parent.mkdir(parents=True, exist_ok=True)
 	sample = pred_df.sample(min(sample_size, len(pred_df)), random_state=42) if len(pred_df) else pred_df
+	sample = sample.copy()
+
+	# Normalize prediction columns so downstream charts can use a stable schema.
+	rename_map = {
+		"รวมจำนวนผู้บาดเจ็บ": "actual",
+		"prediction_label": "predicted",
+	}
+	sample = sample.rename(columns=rename_map)
+
+	if {"actual", "predicted"}.issubset(sample.columns):
+		sample["actual"] = pd.to_numeric(sample["actual"], errors="coerce")
+		sample["predicted"] = pd.to_numeric(sample["predicted"], errors="coerce")
+		sample["abs_error"] = (sample["actual"] - sample["predicted"]).abs()
+
 	sample.to_csv(path, index=False, encoding="utf-8-sig")

@@ -373,11 +373,20 @@ if vehicle_col and len(df):
     )
     _polish_fig(_fig_vehicle, margin=dict(l=20, r=220, t=64, b=40), showlegend=True)
 
-if len(pred_df) and {"actual", "predicted"}.issubset(pred_df.columns):
+_actual_col = "actual" if "actual" in pred_df.columns else "รวมจำนวนผู้บาดเจ็บ"
+_pred_col = "predicted" if "predicted" in pred_df.columns else "prediction_label"
+
+if len(pred_df) and {_actual_col, _pred_col}.issubset(pred_df.columns):
+    pred_df = pred_df.copy()
+    pred_df[_actual_col] = pd.to_numeric(pred_df[_actual_col], errors="coerce")
+    pred_df[_pred_col] = pd.to_numeric(pred_df[_pred_col], errors="coerce")
+    pred_df = pred_df.dropna(subset=[_actual_col, _pred_col])
+    pred_df["abs_error"] = (pred_df[_actual_col] - pred_df[_pred_col]).abs()
+
     _fig_ap = px.scatter(
         pred_df,
-        x="actual",
-        y="predicted",
+        x=_actual_col,
+        y=_pred_col,
         color="abs_error",
         color_continuous_scale="Turbo",
         trendline="ols",
