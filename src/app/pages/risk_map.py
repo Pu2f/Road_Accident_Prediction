@@ -102,6 +102,22 @@ def _clean_text_series(s: pd.Series) -> pd.Series:
     )
 
 
+def _province_label(s: pd.Series) -> str:
+    cleaned = _clean_text_series(s)
+    if cleaned.empty:
+        return "Unknown"
+
+    counts = cleaned.value_counts()
+    if counts.empty:
+        return "Unknown"
+
+    top_province = str(counts.index[0])
+    if len(counts) == 1:
+        return top_province
+
+    return f"{top_province} (+{len(counts) - 1})"
+
+
 if "จังหวัด" in df.columns:
     df["จังหวัด"] = _clean_text_series(df["จังหวัด"])
 
@@ -118,6 +134,7 @@ def _top_locations(df: pd.DataFrame, top_n: int = 3):
         .agg(
             count=("risk_score", "size"),
             avg_risk=("risk_score", "mean"),
+            province=("จังหวัด", _province_label),
         )
         .reset_index()
     )
@@ -236,6 +253,7 @@ def _to_table_rows(freq_tbl: pd.DataFrame, risk_tbl: pd.DataFrame):
     freq_rows = [
         {
             "rank": i + 1,
+            "province": row["province"],
             "lat": f"{row['lat_bin']:.4f}",
             "lon": f"{row['lon_bin']:.4f}",
             "count": int(row["count"]),
@@ -245,6 +263,7 @@ def _to_table_rows(freq_tbl: pd.DataFrame, risk_tbl: pd.DataFrame):
     risk_rows = [
         {
             "rank": i + 1,
+            "province": row["province"],
             "lat": f"{row['lat_bin']:.4f}",
             "lon": f"{row['lon_bin']:.4f}",
             "avg_risk": f"{row['avg_risk']:.1f}",
@@ -280,7 +299,7 @@ initial_summary = f"พบข้อมูล {len(initial_filtered):,} แถว
 
 layout = dbc.Container(
     [
-        html.H3("Risk Map Module"),
+        html.H3("Risk Map - แผนที่ความเสี่ยง", className="page-title"),
         html.P(
             "Risk Score (0-100) คำนวณจากการผสาน 3 ปัจจัยหลัก ได้แก่ ความรุนแรงของเหตุการณ์ "
             "(จำนวนผู้บาดเจ็บ + น้ำหนักผู้เสียชีวิต), ความถี่การเกิดซ้ำในพื้นที่ใกล้เคียง (area frequency), "
@@ -298,6 +317,7 @@ layout = dbc.Container(
                                     id="risk-map-freq-table",
                                     columns=[
                                         {"name": "ลำดับ", "id": "rank"},
+                                        {"name": "จังหวัด", "id": "province"},
                                         {"name": "Latitude", "id": "lat"},
                                         {"name": "Longitude", "id": "lon"},
                                         {"name": "จำนวนเหตุ", "id": "count"},
@@ -323,6 +343,7 @@ layout = dbc.Container(
                                     id="risk-map-risk-table",
                                     columns=[
                                         {"name": "ลำดับ", "id": "rank"},
+                                        {"name": "จังหวัด", "id": "province"},
                                         {"name": "Latitude", "id": "lat"},
                                         {"name": "Longitude", "id": "lon"},
                                         {"name": "คะแนนความเสี่ยงเฉลี่ย", "id": "avg_risk"},
