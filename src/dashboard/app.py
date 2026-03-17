@@ -3,9 +3,9 @@ from pathlib import Path
 from dash import Dash, html, dcc, Input, Output
 import dash_bootstrap_components as dbc
 
-from src.app.pages.overview import layout as overview_layout
-from src.app.pages.forecast import layout as forecast_layout
-from src.app.pages.risk_map import layout as risk_map_layout
+from src.dashboard.pages.overview import layout as overview_layout
+from src.dashboard.pages.forecast import layout as forecast_layout
+from src.dashboard.pages.risk_map import layout as risk_map_layout
 
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 

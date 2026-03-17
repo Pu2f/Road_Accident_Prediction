@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 from dash import html, dcc, dash_table
 import dash_bootstrap_components as dbc
-from src.app.components.card import chart_card
+from src.dashboard.components.card import chart_card
 
 DATA_PATH = "data/processed/cleaned_accidents.csv"
 PRED_PATH = "artifacts/predictions_sample.csv"

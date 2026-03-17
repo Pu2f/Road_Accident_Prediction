@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from dash import html, dcc, Input, Output, State, callback
 import dash_bootstrap_components as dbc
-from src.app.components.filters import move_option_to_end
+from src.dashboard.components.filters import move_option_to_end
 from src.model.predict import predict_injury
 
 
