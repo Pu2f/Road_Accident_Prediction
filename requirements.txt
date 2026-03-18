@@ -11,3 +11,6 @@ black
 isort
 flake8
 autogluon.tabular[all]
+ipykernel
+seaborn
+nbconvert
